@@ -38,47 +38,7 @@ int main(int argc, char* argv[])
 	int hardness[xlenMax][ylenMax];
 	int numRooms, numUpstairs, numDownstairs;
 
-	//we will start out by creating a seed with time-0 to access some randomeness
-	srand(time(0));
-
-	//populating the hardness randomly
-	for (i = 0; i < ylenMax; i++)
-	{
-		for (j = 0; j < xlenMax; j++)
-		{
-			hardness[j][i] = 1 + (rand() % 254);
-		}
-	}
-
-	numRooms = MIN_ROOMS + (rand() % (MAX_ROOMS - MIN_ROOMS + 1));
-
-	room rooms[numRooms];
-
-	int resizer = not_so_rand_roomsize_resizer(numRooms);//we use this function to obtain a denominator to limit the size of the rooms
-
-	//the if conditions used to obtain the max length of the room help avoid the floating point exception (core dump) later when we use it with modulus later
-	int maxRoomxlen = xlenMax / resizer;
-	if (maxRoomxlen <= minRoomxlen) maxRoomxlen = minRoomxlen + 1;
-
-
-	int maxRoomylen = ylenMax / resizer;
-	if (maxRoomylen <= minRoomylen) maxRoomylen = minRoomylen + 1;
-
-	//printf("num Rooms = %d\n", numRooms); //uncomment to see num of rooms generated
-
-	//this loop keeps going till random coordinates and lengths are obtained from random function that make sense
-	while (1)
-	{
-		for (i = 0; i < numRooms; i++)
-		{
-			rooms[i].xloc = rand() % xlenMax;
-			rooms[i].yloc = rand() % ylenMax;
-			rooms[i].xlen = minRoomxlen + rand() % ((maxRoomxlen) - minRoomxlen);
-			rooms[i].ylen = minRoomylen + rand() % ((maxRoomylen) - minRoomylen);
-		}
-		if (makes_sense(rooms, numRooms)) break;
-	}
-
+	room *rooms;
 
 	//first we populate the grid with spaces
 	for (i = 0; i < xlenMax; i++)
@@ -88,85 +48,299 @@ int main(int argc, char* argv[])
 			grid[i][j] = ' ';
 		}
 	}
-	//Next we populate the grid with '.' as per the randomised coordinates that made sense that we obtained earlier
-	for (x = 0; x < numRooms; x++)
-	{
 
-		for (i = rooms[x].xloc; i < (rooms[x].xloc + rooms[x].xlen); i++)
-		{
-			for (j = rooms[x].yloc; j < (rooms[x].yloc + rooms[x].ylen); j++)
+	//load method goes ther
+	for (i = 1; i < argc; i++)
+	{
+			if (!(strcmp(argv[i], "--load")))
 			{
-				grid[i][j] = '.';
+				j = 1;
+				break;
+			}
+
+	}
+
+	if (j==1)
+	{
+		printf("load found\n");
+
+		FILE *f;
+		f = fopen("binary_file", "r");
+
+		u_int8_t temp8;
+		u_int16_t temp16;
+		u_int32_t temp32;
+
+		char filetype[12];
+		fread(filetype, sizeof(char), 12, f);
+		printf("working thus far\n");
+
+		//dealing with version
+		fread(&temp32, sizeof(temp32), 1, f);
+
+		//dealing with filesize - will need to adjust endian if to be used
+		fread(&temp32, sizeof(temp32), 1, f);
+
+		//dealing xPCpos and yPCpos
+		u_int8_t xPCpos;
+		u_int8_t yPCpos;
+		fread(&xPCpos, sizeof(u_int8_t), 1, f);
+		fread(&yPCpos, sizeof(u_int8_t), 1, f);
+		printf("working thus far\n");
+
+		//now we populate the dungeon matrix
+		for (j = 0; j < xlenMax + 2; j++)
+		{
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+		}
+
+		for (i = 0; i < ylenMax; i++)
+		{
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+
+			for (j = 0; j < xlenMax; j++)
+			{
+				fread(&temp8, sizeof(u_int8_t), 1, f);
+				hardness[j][i] = temp8;
+			}
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+
+		}
+
+		for (j = 0; j < xlenMax + 2; j++)
+		{
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+		}
+		//end of hardness reading
+		printf("working thus far\n");
+		//number of Rooms are entered here
+		fread(&temp16, sizeof(u_int16_t), 1, f);
+		numRooms = be16toh(temp16);
+
+		//next we fill in the matrix rooms
+		rooms = malloc(numRooms * sizeof(room));
+
+		//here we write the coordinates of the room
+		for (i = 0; i < numRooms; i++)
+		{
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			rooms[i].xloc = temp8 - 1;
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			rooms[i].yloc = temp8 - 1;
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			rooms[i].xlen = temp8;
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			rooms[i].ylen = temp8;
+
+		}
+
+		//next we populate the room area with the downstairs
+		for (x = 0; x < numRooms; x++)
+		{
+
+			for (i = rooms[x].xloc; i < (rooms[x].xloc + rooms[x].xlen); i++)
+			{
+				for (j = rooms[x].yloc; j < (rooms[x].yloc + rooms[x].ylen); j++)
+				{
+					grid[i][j] = '.';
+				}
 			}
 		}
-	}
 
-	//next we carve out a path between adjacent rooms in which we use the former's x coordinate and latter's y-coordinates to create a mid-point
-	for (int x = 0; x < numRooms - 1; x++)
-	{
-		int middlex = rooms[x].xloc;
-		int middley = rooms[x + 1].yloc;
-		int i;//i will save the direction of the path
+		//next we deal with upstairs
+		fread(&temp16, sizeof(u_int16_t), 1, f);
+		numUpstairs = be16toh(temp16);
 
-		if (rooms[x].yloc > middley) i = 1;
-		else i = -1;
-
-		//first we go from from midpoint to former room
-		for ( j = middley; j != rooms[x].yloc; j += i)
+		for (i = 0; i < numUpstairs; i++)
 		{
-			if (grid[middlex][j] != '.') grid[middlex][j] = '#';
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			x = temp8 - 1;
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			y = temp8 - 1;
+
+			grid[x][y] = '<';
+
 		}
 
-		//then we go from midpoint to latter room
-		if (rooms[x + 1].xloc > middlex) i = 1;
-		else i = -1;
+		//next we deal with downstairs
+		fread(&temp16, sizeof(u_int16_t), 1, f);
+		numDownstairs = be16toh(temp16);
 
-		for ( j = middlex; j != rooms[x + 1].xloc; j += i)
+		for (i = 0; i < numDownstairs; i++)
 		{
-			if (grid[j][middley] != '.') grid[j][middley] = '#';
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			x = temp8 - 1;
+
+			fread(&temp8, sizeof(u_int8_t), 1, f);
+			y = temp8 - 1;
+
+			grid[x][y] = '>';
+
 		}
 
-	}
-
-
-	//here we randomise the upwards and downward staircases and insert them wherever the random coordinates and its horizontal neighbours are part of room
-	for (i = 0; i < 2; i++)
-	{
-		//first iteration adds random number of '<' to the grid, second adds '<'
-		char staircase;
-		if (i == 0) staircase = '<';
-		else staircase = '>';
-
-		int numStairs = minStairs + rand() % ((maxStairs) - minStairs);
-		if (i == 0)
+		//next we populate the corridors
+		for (i = 0; i < ylenMax; i++)
 		{
-			staircase = '<';
-			numUpstairs = numStairs;
-
-		}
-		else
-		{
-			staircase = '>';
-			numDownstairs = numStairs;
-		}
-
-		for (j = 0; j < numStairs; j++)
-		{
-			//while loops below keeps going till a successfuk coordinate is found
-			while (1)
+			for (j = 0; j < xlenMax; j++)
 			{
-				x = 1 + (rand() % (xlenMax - 2));//this ensures that we're not on the left or the right edge because the condition below checks horizontal neighbours
-				y = (rand() % (ylenMax));
-
-				if (grid[x][y] == '.' && grid[x - 1][y] == '.' && grid[x + 1][y] == '.')
+				if (hardness[j][i] == 0)
 				{
-					grid[x][y] = staircase;
-					break;
+					if (grid[j][i] == ' ') grid[j][i] = '#';
+				}
+			}
+		}
+
+		fclose(f);
+		j = 1;
+
+
+
+	}
+	else
+	{
+		//printf("save not found\n");
+	//}
+
+		//we will start out by creating a seed with time-0 to access some randomeness
+		srand(time(0));
+
+		//populating the hardness randomly
+		for (i = 0; i < ylenMax; i++)
+		{
+			for (j = 0; j < xlenMax; j++)
+			{
+				hardness[j][i] = 1 + (rand() % 254);
+			}
+		}
+
+		numRooms = MIN_ROOMS + (rand() % (MAX_ROOMS - MIN_ROOMS + 1));
+
+		rooms = malloc(numRooms * sizeof(room));
+
+		int resizer = not_so_rand_roomsize_resizer(numRooms);//we use this function to obtain a denominator to limit the size of the rooms
+
+		//the if conditions used to obtain the max length of the room help avoid the floating point exception (core dump) later when we use it with modulus later
+		int maxRoomxlen = xlenMax / resizer;
+		if (maxRoomxlen <= minRoomxlen) maxRoomxlen = minRoomxlen + 1;
+
+
+		int maxRoomylen = ylenMax / resizer;
+		if (maxRoomylen <= minRoomylen) maxRoomylen = minRoomylen + 1;
+
+		//printf("num Rooms = %d\n", numRooms); //uncomment to see num of rooms generated
+
+		//this loop keeps going till random coordinates and lengths are obtained from random function that make sense
+		while (1)
+		{
+			for (i = 0; i < numRooms; i++)
+			{
+				rooms[i].xloc = rand() % xlenMax;
+				rooms[i].yloc = rand() % ylenMax;
+				rooms[i].xlen = minRoomxlen + rand() % ((maxRoomxlen) - minRoomxlen);
+				rooms[i].ylen = minRoomylen + rand() % ((maxRoomylen) - minRoomylen);
+			}
+			if (makes_sense(rooms, numRooms)) break;
+		}
+
+
+		//Next we populate the grid with '.' as per the randomised coordinates that made sense that we obtained earlier
+		for (x = 0; x < numRooms; x++)
+		{
+
+			for (i = rooms[x].xloc; i < (rooms[x].xloc + rooms[x].xlen); i++)
+			{
+				for (j = rooms[x].yloc; j < (rooms[x].yloc + rooms[x].ylen); j++)
+				{
+					grid[i][j] = '.';
+					hardness[i][j] = 0;
+				}
+			}
+		}
+
+		//next we carve out a path between adjacent rooms in which we use the former's x coordinate and latter's y-coordinates to create a mid-point
+		for (int x = 0; x < numRooms - 1; x++)
+		{
+			int middlex = rooms[x].xloc;
+			int middley = rooms[x + 1].yloc;
+			int i;//i will save the direction of the path
+
+			if (rooms[x].yloc > middley) i = 1;
+			else i = -1;
+
+			//first we go from from midpoint to former room
+			for ( j = middley; j != rooms[x].yloc; j += i)
+			{
+				if (grid[middlex][j] != '.')
+				{
+					grid[middlex][j] = '#';
+					hardness[middlex][j] = 0;
 				}
 			}
 
+			//then we go from midpoint to latter room
+			if (rooms[x + 1].xloc > middlex) i = 1;
+			else i = -1;
+
+			for ( j = middlex; j != rooms[x + 1].xloc; j += i)
+			{
+				if (grid[j][middley] != '.')
+				{
+					grid[j][middley] = '#';
+					hardness[j][middley] = 0;
+				}
+			}
 
 		}
+
+
+		//here we randomise the upwards and downward staircases and insert them wherever the random coordinates and its horizontal neighbours are part of room
+		for (i = 0; i < 2; i++)
+		{
+			//first iteration adds random number of '<' to the grid, second adds '<'
+			char staircase;
+			if (i == 0) staircase = '<';
+			else staircase = '>';
+
+			int numStairs = minStairs + rand() % ((maxStairs) - minStairs);
+			if (i == 0)
+			{
+				staircase = '<';
+				numUpstairs = numStairs;
+
+			}
+			else
+			{
+				staircase = '>';
+				numDownstairs = numStairs;
+			}
+
+			for (j = 0; j < numStairs; j++)
+			{
+				//while loops below keeps going till a successfuk coordinate is found
+				while (1)
+				{
+					x = 1 + (rand() % (xlenMax - 2));//this ensures that we're not on the left or the right edge because the condition below checks horizontal neighbours
+					y = (rand() % (ylenMax));
+
+					if (grid[x][y] == '.' && grid[x - 1][y] == '.' && grid[x + 1][y] == '.')
+					{
+						grid[x][y] = staircase;
+						break;
+					}
+				}
+
+
+			}
+		}
+
 	}
 	//below is where we print out the actual grid
 	for (i = 0; i < xlenMax; i++) {printf("-");}
@@ -206,7 +380,7 @@ int main(int argc, char* argv[])
 		char* marker = "RLG327-S2021";
 		fwrite(marker, sizeof(char), 12, f);
 
-		u_int32_t version = 1;
+		u_int32_t version = 0;
 		version = htobe32(version);
 		fwrite(&version, sizeof(u_int32_t), 1, f);
 
@@ -238,6 +412,8 @@ int main(int argc, char* argv[])
 		fwrite(&xPCpos, sizeof(u_int8_t), 1, f);
 		fwrite(&yPCpos, sizeof(u_int8_t), 1, f);
 
+
+		//next we write the dungeon matrix - we will have to artificially populate the file with max hardness on border
 		u_int8_t temp8;
 
 		for (j = 0; j < xlenMax + 2; j++)
@@ -268,11 +444,13 @@ int main(int argc, char* argv[])
 			fwrite(&temp8, sizeof(u_int8_t), 1, f);
 		}
 
+		//number of Rooms are entered here
 		u_int16_t temp16 = numRooms;
 		temp16 = htobe16(temp16);
 
 		fwrite(&temp16, sizeof(u_int16_t), 1, f);
 
+		//mext we write the coordinates of the room
 		for (i = 0; i < numRooms; i++)
 		{
 			temp8 = 1 + rooms[i].xloc;
@@ -336,12 +514,14 @@ int main(int argc, char* argv[])
 		}
 
 
-
+		fclose(f);
 	}
 	else
 	{
 		printf("save not found\n");
 	}
+
+	free(rooms);
 
 
 	return 0;

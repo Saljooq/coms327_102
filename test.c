@@ -57,9 +57,9 @@ int main(int argc, char* argv[])
 
 	u_int32_t version = 1;
 	version = htobe32(version);
-	fwrite(&version, sizeof(u_int32_t), 1, f);
+	fwrite(&version, sizeof(version), 1, f);
 
-	
+
 
 	u_int8_t xPCpos = 0;
 	u_int8_t yPCpos = 0;
