@@ -95,6 +95,15 @@ int main(int argc, char* argv[])
 
 	fclose(f);
 
+	char *home = getenv("HOME");
+	char *gamedir = ".rlg327";
+	char *savefile = "dungeon";
+	char *path = malloc(strlen(home) + strlen(gamedir) + strlen(savefile) + 2 + 1);
+	sprintf(path, "%s/%s/%s", home, gamedir, savefile);
+
+	printf("%s\n", path);
+
+
 	return 0;
 
 }

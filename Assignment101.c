@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
 	char grid[xlenMax][ylenMax];
 	int hardness[xlenMax][ylenMax];
 	int numRooms, numUpstairs, numDownstairs;
+	uint8_t xPCpos, yPCpos;
 
 	room *rooms;
 
@@ -63,10 +64,20 @@ int main(int argc, char* argv[])
 
 	if (j==1)
 	{
-		printf("load found 1\n");
+		//printf("load found\n");
 
 		FILE *f;
-		f = fopen("binary_file", "r");
+
+		char *home = getenv("HOME");
+		char *gamedir = ".rlg327";
+		char *savefile = "dungeon";
+		char *path = malloc(strlen(home) + strlen(gamedir) + strlen(savefile) + 2 + 1);
+		sprintf(path, "%s/%s/%s", home, gamedir, savefile);
+
+		if( !( f = fopen( "saveddungeon/03.rlg327", "r"))) {fprintf(stderr, "Failed to open file"); return 1;}
+		free(path);
+
+		//f = fopen("saveddungeon/welldone.rlg327", "r");
 
 		uint8_t temp8;
 		uint16_t temp16;
@@ -74,7 +85,6 @@ int main(int argc, char* argv[])
 
 		char filetype[12];
 		fread(filetype, sizeof(char), 12, f);
-		printf("working thus far 2\n");
 
 		//dealing with version
 		fread(&temp32, sizeof(temp32), 1, f);
@@ -83,11 +93,8 @@ int main(int argc, char* argv[])
 		fread(&temp32, sizeof(temp32), 1, f);
 
 		//dealing xPCpos and yPCpos
-		uint8_t xPCpos;
-		uint8_t yPCpos;
 		fread(&xPCpos, sizeof(uint8_t), 1, f);
 		fread(&yPCpos, sizeof(uint8_t), 1, f);
-		printf("working thus far 3\n");
 
 		//now we populate the dungeon matrix
 		for (j = 0; j < xlenMax + 2; j++)
@@ -115,7 +122,7 @@ int main(int argc, char* argv[])
 			fread(&temp8, sizeof(uint8_t), 1, f);
 		}
 		//end of hardness reading
-		printf("working thus far 4\n");
+
 		//number of Rooms are entered here
 		fread(&temp16, sizeof(uint16_t), 1, f);
 		numRooms = be16toh(temp16);
@@ -139,7 +146,7 @@ int main(int argc, char* argv[])
 			rooms[i].ylen = temp8;
 
 		}
-		printf("working thus far 5\n");
+
 		//next we populate the room area with the downstairs
 		for (x = 0; x < numRooms; x++)
 		{
@@ -152,13 +159,11 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
-		printf("working thus far 6\n");
 
 		//next we deal with upstairs
 		fread(&temp16, sizeof(uint16_t), 1, f);
 		numUpstairs = be16toh(temp16);
 
-		printf("numUpstairs is %d\n", numUpstairs);
 
 		for (i = 0; i < numUpstairs; i++)
 		{
@@ -168,7 +173,6 @@ int main(int argc, char* argv[])
 
 			fread(&temp8, sizeof(uint8_t), 1, f);
 			y = temp8 - 1;
-			printf("x and y is %d and %d\n", x, y);
 			grid[x][y] = '<';
 
 		}
@@ -177,7 +181,6 @@ int main(int argc, char* argv[])
 		fread(&temp16, sizeof(uint16_t), 1, f);
 		numDownstairs = be16toh(temp16);
 
-		printf("num downstairs is %d\n", numDownstairs);
 
 		for (i = 0; i < numDownstairs; i++)
 		{
@@ -187,11 +190,9 @@ int main(int argc, char* argv[])
 
 			fread(&temp8, sizeof(uint8_t), 1, f);
 			y = temp8 - 1;
-			printf("x and y is %d and %d\n", x, y);
 			grid[x][y] = '>';
 
 		}
-		printf("working thus far 7\n");
 		//next we populate the corridors
 		for (i = 0; i < ylenMax; i++)
 		{
@@ -205,17 +206,15 @@ int main(int argc, char* argv[])
 		}
 
 		fclose(f);
-		j = 1;
-
-		printf("load found - final\n");
+		//printf("load found - final - no error while loading\n");
 
 
 
 	}
+	//this is where we start processing the dungron if the load was not found
 	else
 	{
-		//printf("save not found\n");
-	//}
+
 
 		//we will start out by creating a seed with time-0 to access some randomeness
 		srand(time(0));
@@ -349,57 +348,9 @@ int main(int argc, char* argv[])
 			}
 		}
 
-	}
-	//below is where we print out the actual grid
-	for (i = 0; i < xlenMax; i++) {printf("-");}
-	printf("\n");
-
-	for (i = 0; i < ylenMax; i++)
-	{
-		printf("|");
-		for (j = 0; j < xlenMax; j++)
-		{
-			printf("%c", grid[j][i]);
-		}
-		printf("|\n");
-	}
-
-	for (i = 0; i < xlenMax; i++) {printf("-");}
-	printf("\n\n\n");
-
-	//Now we check to see if there's a save switch to update the /.rlg327/dungeon
-	j = 0;
-	for (i = 1; i < argc; i++)
-	{
-			if (!(strcmp(argv[i], "--save")))
-			{
-				j = 1;
-				break;
-			}
-
-	}
-
-	if (j)
-	{
-		printf("save found\n");
-		FILE *f;
-		if( !( f = fopen( "binary_file", "w"))) {fprintf(stderr, "Failed to open file"); return 1;}
-
-		char* marker = "RLG327-S2021";
-		fwrite(marker, sizeof(char), 12, f);
-
-		uint32_t version = 0;
-		version = htobe32(version);
-		fwrite(&version, sizeof(uint32_t), 1, f);
-
-		//calculate the size of the file, meanwhile the size is taken to be zero
-		uint32_t size = 1708 + (4 * numRooms) + (2 * (numUpstairs + numDownstairs));
-		size = htobe32(size);
-		fwrite(&size, sizeof(uint32_t), 1, f);
-
-		//now we enter position of the PC, making sure there's floor there
-		uint8_t xPCpos = 0;
-		uint8_t yPCpos = 0;
+		//this is where we try to position PC on the floor, making sure there's floor there
+		xPCpos = 0;
+		yPCpos = 0;
 		for (i = 0; i < ylenMax; i++)
 		{
 			k = 0;
@@ -417,6 +368,71 @@ int main(int argc, char* argv[])
 			if (k) break;
 		}
 
+	}
+	//this is where processing of the dungeon ends
+
+	//below is where we print out the actual grid
+
+	char temp = grid[xPCpos - 1][yPCpos - 1];//we save the char where we want to place the PC
+	grid[xPCpos - 1][yPCpos - 1] = '@';
+
+	for (i = 0; i < xlenMax; i++) {printf("-");}
+	printf("\n");
+
+	for (i = 0; i < ylenMax; i++)
+	{
+		printf("|");
+		for (j = 0; j < xlenMax; j++)
+		{
+			printf("%c", grid[j][i]);
+		}
+		printf("|\n");
+	}
+
+	for (i = 0; i < xlenMax; i++) {printf("-");}
+	printf("\n\n\n");
+
+	grid[xPCpos - 1][yPCpos - 1] = temp; //restoring the grid by replacing the PC
+
+	//Now we check to see if there's a save switch to update the /.rlg327/dungeon
+	j = 0;
+	for (i = 1; i < argc; i++)
+	{
+			if (!(strcmp(argv[i], "--save")))
+			{
+				j = 1;
+				break;
+			}
+
+	}
+
+	if (j)
+	{
+		//printf("save found\n");
+		FILE *f;
+
+		char *home = getenv("HOME");
+		char *gamedir = ".rlg327";
+		char *savefile = "dungeon";
+		char *path = malloc(strlen(home) + strlen(gamedir) + strlen(savefile) + 2 + 1);
+		sprintf(path, "%s/%s/%s", home, gamedir, savefile);
+
+		if( !( f = fopen( "saveddungeon/03.rlg327", "w"))) {fprintf(stderr, "Failed to open file"); return 1;}
+		free(path);
+
+		char* marker = "RLG327-S2021";
+		fwrite(marker, sizeof(char), 12, f);
+
+		uint32_t version = 0;
+		version = htobe32(version);
+		fwrite(&version, sizeof(uint32_t), 1, f);
+
+		//calculate the size of the file, meanwhile the size is taken to be zero
+		uint32_t size = 1708 + (4 * numRooms) + (2 * (numUpstairs + numDownstairs));
+		size = htobe32(size);
+		fwrite(&size, sizeof(uint32_t), 1, f);
+
+		//now we enter position of the PC
 		fwrite(&xPCpos, sizeof(uint8_t), 1, f);
 		fwrite(&yPCpos, sizeof(uint8_t), 1, f);
 
@@ -479,48 +495,45 @@ int main(int argc, char* argv[])
 		temp16 = htobe16(temp16);
 		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-		//for (i = 0; i < numUpstairs; i++)
-		//{
-			for (j = 0; j < ylenMax; j++)
+
+		for (j = 0; j < ylenMax; j++)
+		{
+			for (k = 0; k < xlenMax; k++)
 			{
-				for (k = 0; k < xlenMax; k++)
+				if (grid[k][j] == '<')
 				{
-					if (grid[k][j] == '<')
-					{
-						temp8 = k + 1;
-						fwrite(&temp8, sizeof(uint8_t), 1, f);
+					temp8 = k + 1;
+					fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 
-						temp8 = j + 1;
-						fwrite(&temp8, sizeof(uint8_t), 1, f);
+					temp8 = j + 1;
+					fwrite(&temp8, sizeof(uint8_t), 1, f);
 
-					}
 				}
 			}
-		//}
+		}
+
 
 		temp16 = numDownstairs;
 		temp16 = htobe16(temp16);
 		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-		//for (i = 0; i < numDownstairs; i++)
-		//{
-			for (j = 0; j < ylenMax; j++)
+
+		for (j = 0; j < ylenMax; j++)
+		{
+			for (k = 0; k < xlenMax; k++)
 			{
-				for (k = 0; k < xlenMax; k++)
+				if (grid[k][j] == '>')
 				{
-					if (grid[k][j] == '>')
-					{
-						temp8 = k + 1;
-						fwrite(&temp8, sizeof(uint8_t), 1, f);
+					temp8 = k + 1;
+					fwrite(&temp8, sizeof(uint8_t), 1, f);
 
-						temp8 = j + 1;
-						fwrite(&temp8, sizeof(uint8_t), 1, f);
+					temp8 = j + 1;
+					fwrite(&temp8, sizeof(uint8_t), 1, f);
 
-					}
 				}
 			}
-		//}
+		}
 
 
 		fclose(f);
