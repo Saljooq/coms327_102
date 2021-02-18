@@ -3,6 +3,7 @@
 #include <endian.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 
 #define xlenMax 10
 #define ylenMax 5
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
 	char* marker = "RLG327-S2021";
 	fwrite(marker, sizeof(char), 12, f);
 
-	u_int32_t version = 1;
+	uint32_t version = 1;
 	version = htobe32(version);
 	fwrite(&version, sizeof(version), 1, f);
 

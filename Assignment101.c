@@ -3,6 +3,7 @@
 #include <time.h>
 #include <endian.h>
 #include <string.h>
+#include <stdint.h>
 
 #define MAX_ROOMS 12
 #define MIN_ROOMS 6
@@ -62,18 +63,18 @@ int main(int argc, char* argv[])
 
 	if (j==1)
 	{
-		printf("load found\n");
+		printf("load found 1\n");
 
 		FILE *f;
 		f = fopen("binary_file", "r");
 
-		u_int8_t temp8;
-		u_int16_t temp16;
-		u_int32_t temp32;
+		uint8_t temp8;
+		uint16_t temp16;
+		uint32_t temp32;
 
 		char filetype[12];
 		fread(filetype, sizeof(char), 12, f);
-		printf("working thus far\n");
+		printf("working thus far 2\n");
 
 		//dealing with version
 		fread(&temp32, sizeof(temp32), 1, f);
@@ -82,41 +83,41 @@ int main(int argc, char* argv[])
 		fread(&temp32, sizeof(temp32), 1, f);
 
 		//dealing xPCpos and yPCpos
-		u_int8_t xPCpos;
-		u_int8_t yPCpos;
-		fread(&xPCpos, sizeof(u_int8_t), 1, f);
-		fread(&yPCpos, sizeof(u_int8_t), 1, f);
-		printf("working thus far\n");
+		uint8_t xPCpos;
+		uint8_t yPCpos;
+		fread(&xPCpos, sizeof(uint8_t), 1, f);
+		fread(&yPCpos, sizeof(uint8_t), 1, f);
+		printf("working thus far 3\n");
 
 		//now we populate the dungeon matrix
 		for (j = 0; j < xlenMax + 2; j++)
 		{
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 		}
 
 		for (i = 0; i < ylenMax; i++)
 		{
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 
 			for (j = 0; j < xlenMax; j++)
 			{
-				fread(&temp8, sizeof(u_int8_t), 1, f);
+				fread(&temp8, sizeof(uint8_t), 1, f);
 				hardness[j][i] = temp8;
 			}
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 
 		}
 
 		for (j = 0; j < xlenMax + 2; j++)
 		{
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 		}
 		//end of hardness reading
-		printf("working thus far\n");
+		printf("working thus far 4\n");
 		//number of Rooms are entered here
-		fread(&temp16, sizeof(u_int16_t), 1, f);
+		fread(&temp16, sizeof(uint16_t), 1, f);
 		numRooms = be16toh(temp16);
 
 		//next we fill in the matrix rooms
@@ -125,20 +126,20 @@ int main(int argc, char* argv[])
 		//here we write the coordinates of the room
 		for (i = 0; i < numRooms; i++)
 		{
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			rooms[i].xloc = temp8 - 1;
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			rooms[i].yloc = temp8 - 1;
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			rooms[i].xlen = temp8;
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			rooms[i].ylen = temp8;
 
 		}
-
+		printf("working thus far 5\n");
 		//next we populate the room area with the downstairs
 		for (x = 0; x < numRooms; x++)
 		{
@@ -151,41 +152,46 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
+		printf("working thus far 6\n");
 
 		//next we deal with upstairs
-		fread(&temp16, sizeof(u_int16_t), 1, f);
+		fread(&temp16, sizeof(uint16_t), 1, f);
 		numUpstairs = be16toh(temp16);
+
+		printf("numUpstairs is %d\n", numUpstairs);
 
 		for (i = 0; i < numUpstairs; i++)
 		{
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			x = temp8 - 1;
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			y = temp8 - 1;
-
+			printf("x and y is %d and %d\n", x, y);
 			grid[x][y] = '<';
 
 		}
 
 		//next we deal with downstairs
-		fread(&temp16, sizeof(u_int16_t), 1, f);
+		fread(&temp16, sizeof(uint16_t), 1, f);
 		numDownstairs = be16toh(temp16);
+
+		printf("num downstairs is %d\n", numDownstairs);
 
 		for (i = 0; i < numDownstairs; i++)
 		{
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			x = temp8 - 1;
 
-			fread(&temp8, sizeof(u_int8_t), 1, f);
+			fread(&temp8, sizeof(uint8_t), 1, f);
 			y = temp8 - 1;
-
+			printf("x and y is %d and %d\n", x, y);
 			grid[x][y] = '>';
 
 		}
-
+		printf("working thus far 7\n");
 		//next we populate the corridors
 		for (i = 0; i < ylenMax; i++)
 		{
@@ -200,6 +206,8 @@ int main(int argc, char* argv[])
 
 		fclose(f);
 		j = 1;
+
+		printf("load found - final\n");
 
 
 
@@ -380,18 +388,18 @@ int main(int argc, char* argv[])
 		char* marker = "RLG327-S2021";
 		fwrite(marker, sizeof(char), 12, f);
 
-		u_int32_t version = 0;
+		uint32_t version = 0;
 		version = htobe32(version);
-		fwrite(&version, sizeof(u_int32_t), 1, f);
+		fwrite(&version, sizeof(uint32_t), 1, f);
 
 		//calculate the size of the file, meanwhile the size is taken to be zero
-		u_int32_t size = 1708 + (4 * numRooms) + (2 * (numUpstairs + numDownstairs));
+		uint32_t size = 1708 + (4 * numRooms) + (2 * (numUpstairs + numDownstairs));
 		size = htobe32(size);
-		fwrite(&size, sizeof(u_int32_t), 1, f);
+		fwrite(&size, sizeof(uint32_t), 1, f);
 
 		//now we enter position of the PC, making sure there's floor there
-		u_int8_t xPCpos = 0;
-		u_int8_t yPCpos = 0;
+		uint8_t xPCpos = 0;
+		uint8_t yPCpos = 0;
 		for (i = 0; i < ylenMax; i++)
 		{
 			k = 0;
@@ -409,70 +417,70 @@ int main(int argc, char* argv[])
 			if (k) break;
 		}
 
-		fwrite(&xPCpos, sizeof(u_int8_t), 1, f);
-		fwrite(&yPCpos, sizeof(u_int8_t), 1, f);
+		fwrite(&xPCpos, sizeof(uint8_t), 1, f);
+		fwrite(&yPCpos, sizeof(uint8_t), 1, f);
 
 
 		//next we write the dungeon matrix - we will have to artificially populate the file with max hardness on border
-		u_int8_t temp8;
+		uint8_t temp8;
 
 		for (j = 0; j < xlenMax + 2; j++)
 		{
 			temp8 = 255;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 		}
 
 		for (i = 0; i < ylenMax; i++)
 		{
 			temp8 = 255;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 			for (j = 0; j < xlenMax; j++)
 			{
 				temp8 = hardness[j][i];
-				fwrite(&temp8, sizeof(u_int8_t), 1, f);
+				fwrite(&temp8, sizeof(uint8_t), 1, f);
 			}
 
 			temp8 = 255;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 		}
 
 		for (j = 0; j < xlenMax + 2; j++)
 		{
 			temp8 = 255;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 		}
 
 		//number of Rooms are entered here
-		u_int16_t temp16 = numRooms;
+		uint16_t temp16 = numRooms;
 		temp16 = htobe16(temp16);
 
-		fwrite(&temp16, sizeof(u_int16_t), 1, f);
+		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
 		//mext we write the coordinates of the room
 		for (i = 0; i < numRooms; i++)
 		{
 			temp8 = 1 + rooms[i].xloc;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 			temp8 = 1 + rooms[i].yloc;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 			temp8 = rooms[i].xlen;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 			temp8 = rooms[i].ylen;
-			fwrite(&temp8, sizeof(u_int8_t), 1, f);
+			fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 		}
 
 		temp16 = numUpstairs;
 		temp16 = htobe16(temp16);
-		fwrite(&temp16, sizeof(u_int16_t), 1, f);
+		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-		for (i = 0; i < numUpstairs; i++)
-		{
+		//for (i = 0; i < numUpstairs; i++)
+		//{
 			for (j = 0; j < ylenMax; j++)
 			{
 				for (k = 0; k < xlenMax; k++)
@@ -480,22 +488,23 @@ int main(int argc, char* argv[])
 					if (grid[k][j] == '<')
 					{
 						temp8 = k + 1;
-						fwrite(&temp8, sizeof(u_int8_t), 1, f);
+						fwrite(&temp8, sizeof(uint8_t), 1, f);
+
 
 						temp8 = j + 1;
-						fwrite(&temp8, sizeof(u_int8_t), 1, f);
+						fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 					}
 				}
 			}
-		}
+		//}
 
 		temp16 = numDownstairs;
 		temp16 = htobe16(temp16);
-		fwrite(&temp16, sizeof(u_int16_t), 1, f);
+		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-		for (i = 0; i < numDownstairs; i++)
-		{
+		//for (i = 0; i < numDownstairs; i++)
+		//{
 			for (j = 0; j < ylenMax; j++)
 			{
 				for (k = 0; k < xlenMax; k++)
@@ -503,15 +512,15 @@ int main(int argc, char* argv[])
 					if (grid[k][j] == '>')
 					{
 						temp8 = k + 1;
-						fwrite(&temp8, sizeof(u_int8_t), 1, f);
+						fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 						temp8 = j + 1;
-						fwrite(&temp8, sizeof(u_int8_t), 1, f);
+						fwrite(&temp8, sizeof(uint8_t), 1, f);
 
 					}
 				}
 			}
-		}
+		//}
 
 
 		fclose(f);
