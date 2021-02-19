@@ -74,10 +74,9 @@ int main(int argc, char* argv[])
 		char *path = malloc(strlen(home) + strlen(gamedir) + strlen(savefile) + 2 + 1);
 		sprintf(path, "%s/%s/%s", home, gamedir, savefile);
 
-		if( !( f = fopen( "saveddungeon/03.rlg327", "r"))) {fprintf(stderr, "Failed to open file"); return 1;}
+		if( !( f = fopen( path, "r"))) {printf("Failed to open file\n"); return 1;}
 		free(path);
 
-		//f = fopen("saveddungeon/welldone.rlg327", "r");
 
 		uint8_t temp8;
 		uint16_t temp16;
@@ -193,7 +192,7 @@ int main(int argc, char* argv[])
 			grid[x][y] = '>';
 
 		}
-		//next we populate the corridors
+		//next we populate the corridors wherever hardness is zero and there is no room or stairs (or in this case wherever there is space in the grid)
 		for (i = 0; i < ylenMax; i++)
 		{
 			for (j = 0; j < xlenMax; j++)
@@ -405,7 +404,7 @@ int main(int argc, char* argv[])
 			}
 
 	}
-
+	//processing for save tags beings here
 	if (j)
 	{
 		//printf("save found\n");
@@ -417,7 +416,7 @@ int main(int argc, char* argv[])
 		char *path = malloc(strlen(home) + strlen(gamedir) + strlen(savefile) + 2 + 1);
 		sprintf(path, "%s/%s/%s", home, gamedir, savefile);
 
-		if( !( f = fopen( "saveddungeon/03.rlg327", "w"))) {fprintf(stderr, "Failed to open file"); return 1;}
+		if( !( f = fopen( path, "w"))) {printf("Failed to open file\n"); return 1;}
 		free(path);
 
 		char* marker = "RLG327-S2021";
@@ -491,11 +490,12 @@ int main(int argc, char* argv[])
 
 		}
 
+		//here we process the number of upstairs
 		temp16 = numUpstairs;
 		temp16 = htobe16(temp16);
 		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-
+		//here we enter the coordinates of upstairs
 		for (j = 0; j < ylenMax; j++)
 		{
 			for (k = 0; k < xlenMax; k++)
@@ -513,12 +513,12 @@ int main(int argc, char* argv[])
 			}
 		}
 
-
+		//here we process the number of downstairs
 		temp16 = numDownstairs;
 		temp16 = htobe16(temp16);
 		fwrite(&temp16, sizeof(uint16_t), 1, f);
 
-
+		//here we enter the coordinates of downstairs
 		for (j = 0; j < ylenMax; j++)
 		{
 			for (k = 0; k < xlenMax; k++)
@@ -538,10 +538,8 @@ int main(int argc, char* argv[])
 
 		fclose(f);
 	}
-	else
-	{
-		printf("save not found\n");
-	}
+	//processing for save ends here
+
 
 	free(rooms);
 

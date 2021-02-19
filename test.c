@@ -94,6 +94,9 @@ int main(int argc, char* argv[])
 	}
 
 	fclose(f);
+	//FILE *f;
+	if( !( f = fopen( "boo", "r"))) {printf("Failed to open file\n"); return 1;}
+	fclose(f);
 
 	char *home = getenv("HOME");
 	char *gamedir = ".rlg327";
@@ -102,6 +105,11 @@ int main(int argc, char* argv[])
 	sprintf(path, "%s/%s/%s", home, gamedir, savefile);
 
 	printf("%s\n", path);
+	free(path);
+
+	i = 0;
+	j = 5;
+	if (!(j=i)) printf("successful!\n");
 
 
 	return 0;
